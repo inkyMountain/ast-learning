@@ -1,7 +1,8 @@
-import { parse } from '@babel/parser';
-import { promises as fs } from 'fs';
-import * as types from '@babel/types';
-import traverse from '@babel/traverse';
+const { parse } = require('@babel/parser');
+const { promises: fs } = require('fs');
+const types = require('@babel/types');
+const traverse = require('@babel/traverse').default;
+const generate = require('@babel/generator').default;
 
 const programEntry = async () => {
   const buffer = await fs.readFile('src/source.js');
@@ -19,12 +20,20 @@ const programEntry = async () => {
     ],
   });
 
+  const contentCache = {
+    importDeclaration: '',
+    components: '',
+    data: '',
+    methods: '',
+    lifeCycles: '',
+  };
+
   traverse(ast, {
     enter(astPath) {
       // 外层import部分语句
       if (types.isImportDeclaration(astPath)) {
-        console.log('astPath', astPath, '\n\n\n\n\n\n\n\n\n');
         // 外层变量处理
+        contentCache.importDeclaration += generate(astPath.node).code;
       } else if (types.isVariableDeclaration(astPath)) {
         // 判断如果是类属性
       } else if (types.isClassProperty(astPath)) {
@@ -33,6 +42,7 @@ const programEntry = async () => {
       }
     },
   });
+  console.log('contentCache', contentCache);
 };
 
 programEntry();
