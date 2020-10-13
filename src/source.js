@@ -23,6 +23,12 @@ export default class extends wepy.component {
     current: 0,
   };
 
+  methods = {
+    onBannerChange(ev) {
+      this.handleBannerChange(ev);
+    },
+  };
+
   events = {
     pageShow() {
       bannerChangeDispatch.pause = false;
@@ -31,12 +37,6 @@ export default class extends wepy.component {
     },
     pageHide() {
       bannerChangeDispatch.pause = true;
-    },
-  };
-
-  methods = {
-    onBannerChange(ev) {
-      this.handleBannerChange(ev);
     },
   };
 

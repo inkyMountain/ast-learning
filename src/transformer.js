@@ -24,25 +24,72 @@ const programEntry = async () => {
     importDeclaration: '',
     components: '',
     data: '',
-    methods: '',
-    lifeCycles: '',
+    methods: types.objectExpression([]),
+    lifeCycles: [],
   };
+
+  const lifeCycleNames = ['onLoad', 'onShow', 'onHide'];
 
   traverse(ast, {
     enter(astPath) {
       // 外层import部分语句
       if (types.isImportDeclaration(astPath)) {
-        // 外层变量处理
         contentCache.importDeclaration += generate(astPath.node).code;
       } else if (types.isVariableDeclaration(astPath)) {
-        // 判断如果是类属性
       } else if (types.isClassProperty(astPath)) {
-        // 判断如果是类方法
+        const propertyName = astPath.node.key.name;
+        switch (propertyName) {
+          case 'components':
+          case 'data':
+            contentCache[propertyName] = astPath.node.value;
+            break;
+          // 由于需要将 events 和 methods 中的方法，
+          // 最终输出到 Vue 组件对象的 methods 属性中，
+          // 所以将 events 和 methods 中的方法，
+          // 合并入 contentCache 的 methods 中。
+          case 'events':
+            contentCache.methods.properties = [
+              ...contentCache.methods.properties,
+              ...astPath.node.value.properties,
+            ];
+            break;
+          case 'methods':
+            const originalProperties = contentCache.methods.properties;
+            contentCache.methods = astPath.node.value;
+            contentCache.methods.properties = [
+              ...originalProperties,
+              ...astPath.node.value.properties,
+            ];
+            break;
+          default:
+            break;
+        }
       } else if (types.isClassMethod(astPath)) {
+        const node = astPath.node;
+        const methodName = node.key.name;
+        const isLifeCycle = lifeCycleNames.includes(methodName);
+        isLifeCycle
+          ? contentCache.lifeCycles.push(node)
+          : contentCache.methods.properties.push(node);
       }
     },
   });
-  console.log('contentCache', contentCache);
+  // console.log('contentCache', contentCache);
+
+  const result = cacheToOutput(contentCache);
+  await fs.writeFile('./output.js', result);
+};
+
+const cacheToOutput = (cache) => {
+  let output = cache.importDeclaration;
+  delete cache.importDeclaration;
+  delete cache.lifeCycles;
+
+  return Object.keys(cache).reduce((result, key) => {
+    const astNode = cache[key];
+    const generated = generate(astNode);
+    return result + generated.code;
+  }, output);
 };
 
 programEntry();
