@@ -11,7 +11,6 @@ parseFile('src/source/source2.js')
         if (types.isObjectExpression(astPath)) {
           const properties = astPath.node.properties;
           properties.forEach((property, index, array) => {
-            const xxx = types.isObjectProperty(property);
             if (!types.isObjectProperty(property)) return;
 
             const {
